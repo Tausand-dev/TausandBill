@@ -467,7 +467,7 @@ class FacturaWindow(QtWidgets.QMainWindow):
     def confirmGuardar(self):
         msg = QtWidgets.QMessageBox()
         msg.setIcon(QtWidgets.QMessageBox.Information)
-        msg.setText("¿Está seguro que desea guardar esta cotización?.\nVerifique los datos.")
+        msg.setText("¿Está seguro que desea generar esta factura?.\nVerifique los datos.")
         msg.setWindowTitle("Confirmar")
         msg.setStandardButtons(QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.Cancel)
         ans = msg.exec_()
