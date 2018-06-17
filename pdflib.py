@@ -102,7 +102,9 @@ class FacturaPDF(object):
 
         self.setLast(factura.getSubTotalS(), factura.getIVAS(), factura.getFleteS(),
                         factura.getReteFuenteS(), factura.getTotalS())
-        self.setObservaciones(factura.getObservaciones())
+
+        obs = factura.getObservaciones().replace('\n','<br/>')
+        self.setObservaciones(obs)
 
     def save(self):
         self.canvas.save()

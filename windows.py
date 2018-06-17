@@ -302,9 +302,12 @@ class FacturaWindow(QtWidgets.QMainWindow):
         self.direccion_widget = AutoLineEdit("Dirección", self)
         ciudad_label = QtWidgets.QLabel("Ciudad:")
         self.ciudad_widget = AutoLineEdit("Ciudad", self)
-
         telefono_label = QtWidgets.QLabel("Teléfono:")
         self.telefono_widget = AutoLineEdit("Teléfono", self)
+
+        observaciones_label = QtWidgets.QLabel("Observaciones")
+        self.observaciones_widget = QtWidgets.QTextEdit("")
+        self.observaciones_widget.setFixedHeight(66)
 
         self.form_frame_layout.addWidget(nombre_label, 0, 0)
         self.form_frame_layout.addWidget(self.nombre_widget, 0, 1)
@@ -370,6 +373,7 @@ class FacturaWindow(QtWidgets.QMainWindow):
         self.total_frame_layout.addRow(flete_label, self.flete_widget)
         self.total_frame_layout.addRow(retefuente_label, self.retefuente_widget)
         self.total_frame_layout.addRow(total_label, self.total_widget)
+        self.total_frame_layout.addRow(observaciones_label, self.observaciones_widget)
 
         self.verticalLayout.addWidget(self.factura_frame)
         self.verticalLayout.addWidget(self.autocompletar_widget)
@@ -435,6 +439,7 @@ class FacturaWindow(QtWidgets.QMainWindow):
         self.flete_widget.setText("")
         self.retefuente_widget.setText("")
         self.total_widget.setText("")
+        self.observaciones_widget.setText("")
         self.autocompletar_widget.setChecked(True)
 
     def verCodigos(self):
@@ -484,6 +489,7 @@ class FacturaWindow(QtWidgets.QMainWindow):
 
             usuario = objects.Usuario(**dic)
             self.factura.setUsuario(usuario)
+            self.factura.setObservaciones(self.observaciones_widget.toPlainText())
             self.factura.makePDF()
 
             path = os.path.dirname(sys.executable)
@@ -513,6 +519,7 @@ class FacturaWindow(QtWidgets.QMainWindow):
             else:
                 self.closePDF(p1, old)
                 self.factura.setUsuario(None)
+                self.factura.setObservaciones("")
                 os.remove(path1)
                 for i in range(10):
                     try:
@@ -525,6 +532,7 @@ class FacturaWindow(QtWidgets.QMainWindow):
             self.errorWindow(e)
 
         self.factura.setUsuario(None)
+        self.factura.setObservaciones("")
 
     def setLastFactura(self):
         try:
