@@ -527,7 +527,10 @@ class FacturaWindow(QtWidgets.QMainWindow):
         self.factura.setUsuario(None)
 
     def setLastFactura(self):
-        cot = int(objects.REGISTRO_DATAFRAME["Factura"].values[0]) + 1
+        try:
+            cot = int(objects.REGISTRO_DATAFRAME["Factura"].values[0]) + 1
+        except IndexError:
+            cot = 1
 
         self.numero_factura.setText(str(cot))
         self.factura.setNumero(cot)

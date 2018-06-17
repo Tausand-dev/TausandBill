@@ -6,7 +6,7 @@ app = QtWidgets.QApplication(sys.argv)
 icon = QtGui.QIcon('Registers/icon.ico')
 app.setWindowIcon(icon)
 
-splash_pix = QtGui.QPixmap('Registers/logo.png').scaledToWidth(600)
+splash_pix = QtGui.QPixmap('Registers/logo.png').scaledToWidth(500)
 splash = QtWidgets.QSplashScreen(splash_pix, QtCore.Qt.WindowStaysOnTopHint)
 splash.show()
 app.processEvents()
