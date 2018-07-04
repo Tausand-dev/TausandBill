@@ -1,3 +1,4 @@
+import os
 import constants
 from datetime import datetime
 from reportlab.pdfgen import canvas
@@ -6,6 +7,24 @@ from reportlab.lib.pagesizes import letter
 from reportlab.lib.enums import TA_JUSTIFY
 from reportlab.lib.utils import ImageReader
 from reportlab.lib.styles import ParagraphStyle
+
+class FacturaPDFs(object):
+    def __init__(self, factura):
+        numero = factura.getNumeroS().zfill(4)
+        digital = os.path.join(constants.PDF_DIR, "Factura_" + numero + constants.PDF_DIGITAL)
+        print_ = os.path.join(constants.PDF_DIR, "Factura_" + numero + constants.PDF_PRINT)
+        self.digital = FacturaPDF(digital, background = True)
+        self.print = FacturaPDF(print_, background = False)
+        self.setFromFactura(factura)
+        self.save()
+
+    def setFromFactura(self, factura):
+        self.digital.setFromFactura(factura)
+        self.print.setFromFactura(factura)
+
+    def save(self):
+        self.digital.save()
+        self.print.save()
 
 class FacturaPDF(object):
     def __init__(self, name, background = True):
@@ -90,7 +109,8 @@ class FacturaPDF(object):
 
     def setFromFactura(self, factura):
         now = datetime.now()
-        self.setFacturaNumber(factura.getNumeroS())
+        if self.background:
+            self.setFacturaNumber(factura.getNumeroS())
         self.setDate("%02d"%now.day, "%02d"%now.month, "%d"%now.year)
         self.setSir(factura.getNombre())
         self.setDocumento(factura.getDocumento())

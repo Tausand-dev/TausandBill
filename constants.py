@@ -7,8 +7,8 @@ OLD_DIR = "Cotizaciones"
 PDF_DIR = "PDF"
 REGISTERS_DIR = "Registers"
 
-PDF_PRINT = "to_print.pdf"
-PDF_DIGITAL = "digital.pdf"
+PDF_PRINT = "_print.pdf"
+PDF_DIGITAL = "_digital.pdf"
 
 CLIENTES_FILE = "Clientes.xlsx"
 REGISTRO_FILE = "Registro.xlsx"

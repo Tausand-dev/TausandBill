@@ -5,7 +5,7 @@ import pandas as pd
 from datetime import datetime
 
 import constants
-from pdflib import FacturaPDF
+from pdflib import FacturaPDFs
 from unidecode import unidecode
 
 def makeDir(dir):
@@ -148,19 +148,7 @@ class Factura(object):
         self.makePDF()
 
     def makePDF(self):
-        dir = os.path.join(constants.PDF_DIR, self.getNumeroS())
-        makeDir(dir)
-        self.pdf_dir = dir
-        path = os.path.join(dir, constants.PDF_PRINT)
-
-        fac = FacturaPDF(path, False)
-        fac.setFromFactura(self)
-        fac.save()
-
-        path = os.path.join(dir, constants.PDF_DIGITAL)
-        fac = FacturaPDF(path, True)
-        fac.setFromFactura(self)
-        fac.save()
+        FacturaPDFs(self)
 
     def toRegistro(self):
         global REGISTRO_DATAFRAME

@@ -493,6 +493,7 @@ class FacturaWindow(QtWidgets.QMainWindow):
             self.factura.makePDF()
 
             path = os.path.dirname(sys.executable)
+            path = os.path.dirname(os.getcwd())
             path = os.path.join(path, self.factura.pdf_dir)
             if not os.path.exists(path):
                 path = os.path.join(os.getcwd(), self.factura.pdf_dir)
