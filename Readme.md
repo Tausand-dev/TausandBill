@@ -1,6 +1,6 @@
 # Install dependencies
 ```
-  pip install pandas numpy pyqt5 xlrd openpyxl xlsxwriter unidecode pywin32 reportlab pyinstaller
+  pip install pandas numpy pyqt5 xlrd openpyxl xlsxwriter unidecode pywin32 reportlab pyinstaller psutil
 ```
 
 # pyinstaller

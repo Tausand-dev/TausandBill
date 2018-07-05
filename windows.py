@@ -1,5 +1,6 @@
 import os
 import sys
+import pickle
 import numpy as np
 from time import sleep
 from datetime import datetime
@@ -90,6 +91,11 @@ class PandasModel(QtCore.QAbstractTableModel):
         return np.array([self._data[i, 0].isChecked() for i in range(self.rowCount())], dtype = bool)
 
 class Table(QtWidgets.QTableWidget):
+    C_CODIGO = 0
+    C_DESCRIPCION = 1
+    C_CANTIDAD = 2
+    C_UNITARIO = 3
+    C_TOTAL = 4
     HEADER = ['Código', 'Descripción', 'Cantidad', 'Valor Unitario', 'Valor Total']
     def __init__(self, parent, rows = 9, cols = 5):
         super(Table, self).__init__(rows, cols)
@@ -116,19 +122,21 @@ class Table(QtWidgets.QTableWidget):
         for (i, codigo) in enumerate(regis_codigos):
             if not codigo in table_codigos: self.parent.removeServicio(i)
 
+    def emptyRow(self, row):
+        self.item(row, 1).setText("")
+        self.item(row, 2).setText("")
+        self.item(row, 3).setText("")
+        self.item(row, 4).setText("")
+
     def handler(self, row, col):
         self.blockSignals(True)
         item = self.item(row, col)
         try:
             cod = self.item(row, 0).text()
-            if col == 0:
+            if col == self.C_CODIGO:
                 self.removeServicio()
                 if cod == "":
-                    self.item(row, 1).setText("")
-                    self.item(row, 2).setText("")
-                    self.item(row, 3).setText("")
-                    self.item(row, 4).setText("")
-
+                    self.emptyRow(row)
                 else:
                     try:
                         n = int(self.item(row, 2).text())
@@ -141,16 +149,12 @@ class Table(QtWidgets.QTableWidget):
                             n = 1
                             total = 0
                             self.item(row, 2).setText("1")
-
                     try:
                         servicio = objects.Servicio(codigo = cod, cantidad = n)
                         self.parent.addServicio(servicio)
                     except:
                         self.item(row, 0).setText("")
-                        self.item(row, 1).setText("")
-                        self.item(row, 2).setText("")
-                        self.item(row, 3).setText("")
-                        self.item(row, 4).setText("")
+                        self.emptyRow(row)
                         raise(Exception("Código inválido."))
 
                     desc = servicio.getDescripcion()
@@ -160,7 +164,12 @@ class Table(QtWidgets.QTableWidget):
                     self.item(row, 3).setText("{:,}".format(valor))
                     self.item(row, 4).setText("{:,}".format(total))
 
-            if col == 2:
+            elif col == self.C_DESCRIPCION:
+                if cod != "":
+                    servicio = self.parent.getServicio(cod)
+                    servicio.setDescripcion(self.item(row, self.C_DESCRIPCION).text())
+
+            elif col == self.C_CANTIDAD:
                 try: n = int(self.item(row, 2).text())
                 except: raise(Exception("Cantidad inválida.")); self.item(row, 2).setText("")
 
@@ -172,6 +181,31 @@ class Table(QtWidgets.QTableWidget):
                     total = servicio.getValorTotal()
 
                     self.item(row, 4).setText("{:,}".format(total))
+
+            elif col == self.C_UNITARIO:
+                try:
+                    n = int(float(self.item(row, self.C_UNITARIO).text()))
+                except ValueError as e:
+                    self.item(row, self.C_UNITARIO).setText("")
+                    raise(Exception("Valor inválido."))
+                self.item(row, self.C_UNITARIO).setText("{:,}".format(n))
+                if cod != "":
+                    servicio = self.parent.getServicio(cod)
+                    servicio.setValorUnitario(n)
+                    total = servicio.getValorTotal()
+                    self.item(row, self.C_TOTAL).setText("{:,}".format(total))
+
+            elif col == self.C_TOTAL:
+                try:
+                    n = int(float(self.item(row, self.C_TOTAL).text()))
+                except ValueError as e:
+                    self.item(row, self.C_TOTAL).setText("")
+                    raise(Exception("Valor inválido."))
+                self.item(row, self.C_TOTAL).setText("{:,}".format(n))
+                if cod != "":
+                    servicio = self.parent.getServicio(cod)
+                    servicio.setValorTotal(n)
+                    self.item(row, self.C_TOTAL).setText("{:,}".format(n))
 
             self.parent.setTotal()
         except Exception as e:
@@ -187,16 +221,7 @@ class Table(QtWidgets.QTableWidget):
             for c in range(self.n_cols):
                 item = QtWidgets.QTableWidgetItem("")
                 self.setItem(r, c, item)
-        self.readOnly()
         self.blockSignals(False)
-
-    def readOnly(self):
-        flags = QtCore.Qt.ItemIsEditable
-        for r in range(self.n_rows):
-            for c in [1, 3, 4]:
-                item = QtWidgets.QTableWidgetItem("")
-                item.setFlags(flags)
-                self.setItem(r, c, item)
 
 class AutoLineEdit(QtWidgets.QLineEdit):
     AUTOCOMPLETE = ["Nombre", "Correo", "Documento", "Teléfono", "Cotización"]
@@ -257,8 +282,8 @@ class CodigosDialog(QtWidgets.QDialog):
         self.resize(self.table.sizeHint())
 
 class FacturaWindow(QtWidgets.QMainWindow):
-    FIELDS = ["Nombre", "Documento", "Dirección", "Ciudad", "Teléfono", "Correo"]
-    WIDGETS = ["nombre", "documento", "direccion", "ciudad", "telefono", "correo"]
+    FIELDS = ["Documento", "Nombre", "Dirección", "Ciudad", "Teléfono", "Correo"]
+    WIDGETS = ["documento", "nombre", "direccion", "ciudad", "telefono", "correo"]
     AUTOCOMPLETE_FIELDS = ["Nombre", "Correo", "Documento", "Teléfono"]
     AUTOCOMPLETE_WIDGETS = ["nombre", "correo", "documento", "telefono"]
     def __init__(self, parent = None):
@@ -279,6 +304,7 @@ class FacturaWindow(QtWidgets.QMainWindow):
         self.form_frame = QtWidgets.QFrame()
         self.button_frame = QtWidgets.QFrame()
         self.total_frame = QtWidgets.QFrame()
+        self.observaciones_frame = QtWidgets.QFrame()
 
         self.factura_frame_layout = QtWidgets.QHBoxLayout(self.factura_frame)
         self.numero_factura = QtWidgets.QPushButton()
@@ -309,10 +335,10 @@ class FacturaWindow(QtWidgets.QMainWindow):
         self.observaciones_widget = QtWidgets.QTextEdit("")
         self.observaciones_widget.setFixedHeight(66)
 
-        self.form_frame_layout.addWidget(nombre_label, 0, 0)
-        self.form_frame_layout.addWidget(self.nombre_widget, 0, 1)
-        self.form_frame_layout.addWidget(documento_label, 0, 2)
-        self.form_frame_layout.addWidget(self.documento_widget, 0, 3)
+        self.form_frame_layout.addWidget(documento_label, 0, 0)
+        self.form_frame_layout.addWidget(self.documento_widget, 0, 1)
+        self.form_frame_layout.addWidget(nombre_label, 0, 2)
+        self.form_frame_layout.addWidget(self.nombre_widget, 0, 3)
 
         self.form_frame_layout.addWidget(direccion_label, 2, 0)
         self.form_frame_layout.addWidget(self.direccion_widget, 2, 1)
@@ -335,25 +361,45 @@ class FacturaWindow(QtWidgets.QMainWindow):
         self.button_frame_layout.addWidget(self.limpiar_button)
         self.button_frame_layout.addWidget(self.view_button)
 
-        self.total_frame_layout = QtWidgets.QFormLayout(self.total_frame)
+        self.total_frame_layout = QtWidgets.QGridLayout(self.total_frame)
         subtotal_label = QtWidgets.QLabel("Sub-total:")
         self.subtotal_widget = QtWidgets.QLabel()
         iva_label = QtWidgets.QLabel("IVA:")
+        self.iva_edit = QtWidgets.QLineEdit()
         self.iva_widget = QtWidgets.QLabel()
         flete_label = QtWidgets.QLabel("Flete:")
+        self.flete_edit = QtWidgets.QLineEdit()
         self.flete_widget = QtWidgets.QLabel()
         retefuente_label = QtWidgets.QLabel("ReteFuente:")
+        self.retefuente_edit = QtWidgets.QLineEdit()
         self.retefuente_widget = QtWidgets.QLabel()
         total_label = QtWidgets.QLabel("Total:")
         self.total_widget = QtWidgets.QLabel()
 
+        w = 80
+        self.iva_edit.setFixedWidth(w)
+        self.flete_edit.setFixedWidth(w)
+        self.retefuente_edit.setFixedWidth(w)
+        self.subtotal_widget.setFixedWidth(w)
+        self.iva_widget.setFixedWidth(w)
+        self.flete_widget.setFixedWidth(w)
+        self.retefuente_widget.setFixedWidth(w)
+        self.total_widget.setFixedWidth(w)
+
+        self.iva_edit.setValidator(QtGui.QDoubleValidator())
+        self.flete_edit.setValidator(QtGui.QIntValidator())
+        self.retefuente_edit.setValidator(QtGui.QIntValidator())
+
         subtotal_label.setAlignment(QtCore.Qt.AlignRight)
         self.subtotal_widget.setAlignment(QtCore.Qt.AlignRight)
         iva_label.setAlignment(QtCore.Qt.AlignRight)
+        self.iva_edit.setAlignment(QtCore.Qt.AlignRight)
         self.iva_widget.setAlignment(QtCore.Qt.AlignRight)
         flete_label.setAlignment(QtCore.Qt.AlignRight)
+        self.flete_edit.setAlignment(QtCore.Qt.AlignRight)
         self.flete_widget.setAlignment(QtCore.Qt.AlignRight)
         retefuente_label.setAlignment(QtCore.Qt.AlignRight)
+        self.retefuente_edit.setAlignment(QtCore.Qt.AlignRight)
         self.retefuente_widget.setAlignment(QtCore.Qt.AlignRight)
         total_label.setAlignment(QtCore.Qt.AlignRight)
         self.total_widget.setAlignment(QtCore.Qt.AlignRight)
@@ -368,18 +414,33 @@ class FacturaWindow(QtWidgets.QMainWindow):
         self.button_frame_layout.setAlignment(QtCore.Qt.AlignRight)
         self.verticalLayout.setAlignment(QtCore.Qt.AlignRight)
 
-        self.total_frame_layout.addRow(subtotal_label, self.subtotal_widget)
-        self.total_frame_layout.addRow(iva_label, self.iva_widget)
-        self.total_frame_layout.addRow(flete_label, self.flete_widget)
-        self.total_frame_layout.addRow(retefuente_label, self.retefuente_widget)
-        self.total_frame_layout.addRow(total_label, self.total_widget)
-        self.total_frame_layout.addRow(observaciones_label, self.observaciones_widget)
+        self.total_frame_layout.addWidget(subtotal_label, 0, 0)
+        self.total_frame_layout.addWidget(self.subtotal_widget, 0, 2)
+
+        self.total_frame_layout.addWidget(iva_label, 1, 0)
+        self.total_frame_layout.addWidget(self.iva_edit, 1, 1)
+        self.total_frame_layout.addWidget(self.iva_widget, 1, 2)
+
+        self.total_frame_layout.addWidget(flete_label, 2, 0)
+        self.total_frame_layout.addWidget(self.flete_edit, 2, 1)
+        self.total_frame_layout.addWidget(self.flete_widget, 2, 2)
+
+        self.total_frame_layout.addWidget(retefuente_label, 3, 0)
+        self.total_frame_layout.addWidget(self.retefuente_edit, 3, 1)
+        self.total_frame_layout.addWidget(self.retefuente_widget, 3, 2)
+
+        self.total_frame_layout.addWidget(total_label, 4, 0)
+        self.total_frame_layout.addWidget(self.total_widget, 4, 2)
+
+        self.observaciones_layout = QtWidgets.QFormLayout(self.observaciones_frame)
+        self.observaciones_layout.addRow(observaciones_label, self.observaciones_widget)
 
         self.verticalLayout.addWidget(self.factura_frame)
         self.verticalLayout.addWidget(self.autocompletar_widget)
         self.verticalLayout.addWidget(self.form_frame)
         self.verticalLayout.addWidget(self.table)
         self.verticalLayout.addWidget(self.total_frame)
+        self.verticalLayout.addWidget(self.observaciones_frame)
         self.verticalLayout.addWidget(self.button_frame)
 
         self.setAutoCompletar()
@@ -390,9 +451,18 @@ class FacturaWindow(QtWidgets.QMainWindow):
 
         self.resize(600, 550)
 
+        self.iva_edit.textChanged.connect(self.ivaHandler)
+        self.flete_edit.textChanged.connect(self.fleteHandler)
+        self.retefuente_edit.textChanged.connect(self.reteFuenteHandler)
         self.limpiar_button.clicked.connect(self.limpiar)
         self.guardar_button.clicked.connect(self.guardar)
         self.view_button.clicked.connect(self.verCodigos)
+
+        self.iva_edit.setText("0.19")
+        self.flete_edit.setText("0")
+        self.retefuente_edit.setText("0")
+
+        self.valuesFromStart()
 
     def setAutoCompletar(self):
         for item in self.AUTOCOMPLETE_WIDGETS:
@@ -446,6 +516,27 @@ class FacturaWindow(QtWidgets.QMainWindow):
         self.ver_dialog.setModel(constants.PRECIOS_DATAFRAME)
         self.ver_dialog.show()
 
+    def ivaHandler(self):
+        t = "0" + self.iva_edit.text()
+        if t != "":
+            f = float(t)
+            self.factura.setIvaCoeff(f)
+            self.setTotal()
+
+    def fleteHandler(self):
+        t = self.flete_edit.text()
+        if t != "":
+            f = int(t)
+            self.factura.setFlete(f)
+            self.setTotal()
+
+    def reteFuenteHandler(self):
+        t = self.retefuente_edit.text()
+        if t != "":
+            f = int(t)
+            self.factura.setReteFuente(f)
+            self.setTotal()
+
     def closePDF(self, p1, old):
         new = [proc.pid for proc in psutil.process_iter()]
         try:
@@ -492,18 +583,22 @@ class FacturaWindow(QtWidgets.QMainWindow):
             self.factura.setObservaciones(self.observaciones_widget.toPlainText())
             self.factura.makePDF()
 
-            path = os.path.dirname(sys.executable)
-            path = os.path.dirname(os.getcwd())
-            path = os.path.join(path, self.factura.pdf_dir)
-            if not os.path.exists(path):
-                path = os.path.join(os.getcwd(), self.factura.pdf_dir)
+            sys_path = os.path.dirname(sys.executable)
+            path_1 = self.factura.getPDFDir() + constants.PDF_DIGITAL
+            path_2 = self.factura.getPDFDir() + constants.PDF_PRINT
 
-            path1 = os.path.join(path, constants.PDF_PRINT)
-            path2 = os.path.join(path, constants.PDF_DIGITAL)
+            path = os.path.join(sys_path, path_1)
+            if os.path.exists(path):
+                path_1 = path
+                path_2 = os.path.join(sys_path, path_2)
+            else:
+                sys_path = os.getcwd()
+                path_1 = os.path.join(sys_path, path_1)
+                path_2 = os.path.join(sys_path, path_2)
 
             old = [proc.pid for proc in psutil.process_iter()]
 
-            p1 = Popen(path2, shell = True)
+            p1 = Popen(path_1, shell = True)
 
             if self.confirmGuardar():
                 self.closePDF(p1, old)
@@ -521,10 +616,10 @@ class FacturaWindow(QtWidgets.QMainWindow):
                 self.closePDF(p1, old)
                 self.factura.setUsuario(None)
                 self.factura.setObservaciones("")
-                os.remove(path1)
+                os.remove(path_2)
                 for i in range(10):
                     try:
-                        os.remove(path2)
+                        os.remove(path_1)
                         break
                     except PermissionError:
                         sleep(0.1)
@@ -541,8 +636,8 @@ class FacturaWindow(QtWidgets.QMainWindow):
         except IndexError:
             cot = 1
 
-        self.numero_factura.setText(str(cot))
         self.factura.setNumero(cot)
+        self.numero_factura.setText(self.factura.getNumeroS())
 
     def centerOnScreen(self):
         resolution = QtWidgets.QDesktopWidget().screenGeometry()
@@ -571,6 +666,24 @@ class FacturaWindow(QtWidgets.QMainWindow):
         self.retefuente_widget.setText(self.factura.getReteFuenteS())
         self.total_widget.setText(self.factura.getTotalS())
 
+    def valuesFromStart(self):
+        try:
+            with open("init.pkl", "rb") as file:
+                dict_ = pickle.load(file)
+            for key in dict_:
+                val = dict_[key]
+                exec("%s('%s')"%(key, val))
+        except FileNotFoundError:
+            pass
+
+    def saveStart(self):
+        dict_ = {"self.iva_edit.setText": self.iva_edit.text(),
+                "self.flete_edit.setText": self.flete_edit.text(),
+                "self.retefuente_edit.setText": self.retefuente_edit.text()}
+
+        with open("init.pkl", "wb") as file:
+            pickle.dump(dict_, file)
+
     def errorWindow(self, exception):
         error_text = str(exception)
         msg = QtWidgets.QMessageBox()
@@ -582,4 +695,5 @@ class FacturaWindow(QtWidgets.QMainWindow):
 
     def closeEvent(self, event):
         self.is_closed = True
+        self.saveStart()
         event.accept()

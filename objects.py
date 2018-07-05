@@ -25,12 +25,19 @@ def readDataFrames():
 CLIENTES_DATAFRAME, REGISTRO_DATAFRAME = readDataFrames()
 
 class Factura(object):
-    def __init__(self, numero = None, usuario = None, servicios = [], observaciones = ""):
+    def __init__(self, numero = None, usuario = None, servicios = [], observaciones = "", iva = 0.19, flete = 0, retefuente = 0):
         self.numero = numero
         self.usuario = usuario
         self.observaciones = observaciones
-        self.pdf_dir = ""
+        self.iva_coeff = iva
+        self.flete = flete
+        self.retefuente = retefuente
+
+        self.pdf_dir = self.setPDFDir()
         self.setServicios(servicios)
+
+    def getPDFDir(self):
+        return self.pdf_dir
 
     def getUsuario(self):
         return self.usuario
@@ -45,19 +52,19 @@ class Factura(object):
         return sum([servicio.getValorTotal() for servicio in self.servicios])
 
     def getIVA(self):
-        return int(self.getSubTotal() * constants.IVA_COEFF)
+        return int(self.getSubTotal() * self.iva_coeff)
 
     def getFlete(self):
-        return 0
+        return self.flete
 
     def getReteFuente(self):
-        return 0
+        return self.retefuente
 
     def getTotal(self):
         return self.getSubTotal() + self.getIVA() + self.getFlete() + self.getReteFuente()
 
     def getNumeroS(self):
-        return str(self.getNumero())
+        return str(self.getNumero()).zfill(4)
 
     def getSubTotalS(self):
         return self.formatComma(self.getSubTotal())
@@ -105,8 +112,15 @@ class Factura(object):
     def getCorreo(self):
         return self.usuario.getCorreo()
 
+    def setPDFDir(self, loc = None):
+        if loc == None:
+            self.pdf_dir =  os.path.join(constants.PDF_DIR, "Factura_" + self.getNumeroS())
+        else:
+            self.pdf_dir = loc
+
     def setNumero(self, numero):
         self.numero = numero
+        self.setPDFDir()
 
     def setUsuario(self, usuario):
         self.usuario = usuario
@@ -123,6 +137,15 @@ class Factura(object):
 
     def setObservaciones(self, text):
         self.observaciones = text
+
+    def setIvaCoeff(self, val):
+        self.iva_coeff = val
+
+    def setFlete(self, val):
+        self.flete = val
+
+    def setReteFuente(self, val):
+        self.retefuente = val
 
     def removeServicio(self, index):
         del self.servicios[index]
@@ -169,6 +192,7 @@ class Factura(object):
 
         writer = pd.ExcelWriter(constants.REGISTRO_FILE, engine='xlsxwriter',
                     datetime_format= "dd/mm/yy hh:mm")
+
         REGISTRO_DATAFRAME.to_excel(writer, index = False)
 
 class Usuario(object):
@@ -277,6 +301,7 @@ class Servicio(object):
             self.valor_unitario = int(line["Valor"].values[0])
         else:
             self.valor_unitario = valor
+        self.setValorTotal()
 
     def setValorTotal(self, valor = None):
         if valor == None:

@@ -10,9 +10,11 @@ from reportlab.lib.styles import ParagraphStyle
 
 class FacturaPDFs(object):
     def __init__(self, factura):
-        numero = factura.getNumeroS().zfill(4)
-        digital = os.path.join(constants.PDF_DIR, "Factura_" + numero + constants.PDF_DIGITAL)
-        print_ = os.path.join(constants.PDF_DIR, "Factura_" + numero + constants.PDF_PRINT)
+        dir = factura.getPDFDir()
+        
+        digital = dir + constants.PDF_DIGITAL
+        print_ = dir + constants.PDF_PRINT
+
         self.digital = FacturaPDF(digital, background = True)
         self.print = FacturaPDF(print_, background = False)
         self.setFromFactura(factura)
@@ -28,6 +30,7 @@ class FacturaPDFs(object):
 
 class FacturaPDF(object):
     def __init__(self, name, background = True):
+        self.background = background
         self.width, self.height = letter
         self.height *= 0.5
 
@@ -36,7 +39,7 @@ class FacturaPDF(object):
         self.canvas.setLineWidth(.3)
         self.canvas.setFont('Helvetica', 10)
 
-        if background:
+        if self.background:
             logo = ImageReader(constants.BACKGROUND_FACTURA)
             self.canvas.drawImage(logo, 0, 0, height = self.height,
                                     width = self.width, mask = 'auto')
@@ -44,16 +47,15 @@ class FacturaPDF(object):
     def setFacturaNumber(self, number):
         self.canvas.setFont('Helvetica', 15)
         self.canvas.drawCentredString(506, 336, number)
+        self.canvas.setFont('Helvetica', 8)
 
     def setDate(self, dd, mm, yy):
         h = 315
-        self.canvas.setFont('Helvetica', 8)
         self.canvas.drawCentredString(487, h, dd)
         self.canvas.drawCentredString(516, h, mm)
         self.canvas.drawCentredString(552, h, yy)
 
     def setSir(self, text):
-        self.canvas.setFont('Helvetica', 8)
         self.canvas.drawString(96, 296, text)
 
     def setDocumento(self, text):
@@ -69,7 +71,9 @@ class FacturaPDF(object):
         self.canvas.drawString(376, 279, text)
 
     def setCorreo(self, text):
+        self.canvas.setFont('Helvetica', 6)
         self.canvas.drawString(461, 279, text)
+        self.canvas.setFont('Helvetica', 8)
 
     def setItems(self, items):
         y0 = 245
