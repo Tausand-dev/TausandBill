@@ -26,3 +26,4 @@ CLIENTES_KEYS = ['Nombre', 'Documento', 'Dirección', 'Ciudad', 'Teléfono', 'Co
 PRECIOS_DATAFRAME = pd.read_excel(PRECIOS_FILE).fillna("").astype(str)
 
 BACKGROUND_FACTURA = "Registers/factura_tausand.jpg"
+BACKGROUND_COTIZACION = "Registers/cotizacion_tausand.jpg"

@@ -36,7 +36,7 @@ try:
     import os
     import constants
     from time import sleep
-    from windows import FacturaWindow
+    from windows import DocumentoWindow
     from objects import REGISTRO_DATAFRAME, CLIENTES_DATAFRAME
     testFiles()
 
@@ -49,7 +49,7 @@ except Exception as e:
     msg.exec_()
     sys.exit()
 
-main = FacturaWindow()
+main = DocumentoWindow()
 
 QtWidgets.QApplication.setStyle(QtWidgets.QStyleFactory.create('Fusion'))
 

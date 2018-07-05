@@ -2,20 +2,19 @@ import os
 import pickle
 import numpy as np
 import pandas as pd
+from textwrap import wrap
 from datetime import datetime
 
 import constants
-from pdflib import FacturaPDFs
 from unidecode import unidecode
+from pdflib import FacturaPDFs, CotizacionPDF
 
 def makeDir(dir):
     if os.path.isdir(dir): pass
     else: os.makedirs(dir)
 
 makeDir(constants.PDF_DIR)
-
-# if os.path.isdir(constants.OLD_DIR): pass
-# else: os.makedirs(constants.OLD_DIR)
+makeDir(constants.OLD_DIR)
 
 def readDataFrames():
     c = pd.read_excel(constants.CLIENTES_FILE).fillna("").astype(str)
@@ -24,7 +23,7 @@ def readDataFrames():
 
 CLIENTES_DATAFRAME, REGISTRO_DATAFRAME = readDataFrames()
 
-class Factura(object):
+class Documento(object):
     def __init__(self, numero = None, usuario = None, servicios = [], observaciones = "", iva = 0.19, flete = 0, retefuente = 0):
         self.numero = numero
         self.usuario = usuario
@@ -32,12 +31,7 @@ class Factura(object):
         self.iva_coeff = iva
         self.flete = flete
         self.retefuente = retefuente
-
-        self.pdf_dir = self.setPDFDir()
         self.setServicios(servicios)
-
-    def getPDFDir(self):
-        return self.pdf_dir
 
     def getUsuario(self):
         return self.usuario
@@ -112,15 +106,8 @@ class Factura(object):
     def getCorreo(self):
         return self.usuario.getCorreo()
 
-    def setPDFDir(self, loc = None):
-        if loc == None:
-            self.pdf_dir =  os.path.join(constants.PDF_DIR, "Factura_" + self.getNumeroS())
-        else:
-            self.pdf_dir = loc
-
     def setNumero(self, numero):
         self.numero = numero
-        self.setPDFDir()
 
     def setUsuario(self, usuario):
         self.usuario = usuario
@@ -131,9 +118,6 @@ class Factura(object):
             raise(Exception("Existe un código repetido."))
         else:
             self.servicios = servicios
-
-    def setFileName(self, name):
-        self.pdf_file_name = name
 
     def setObservaciones(self, text):
         self.observaciones = text
@@ -161,17 +145,8 @@ class Factura(object):
     def makeTable(self):
         table = []
         for servicio in self.servicios:
-            row = servicio.makeTable()
-            table.append(row)
+            table += servicio.makeTable()
         return table
-
-    def save(self):
-        self.usuario.save()
-        self.toRegistro()
-        self.makePDF()
-
-    def makePDF(self):
-        FacturaPDFs(self)
 
     def toRegistro(self):
         global REGISTRO_DATAFRAME
@@ -194,6 +169,70 @@ class Factura(object):
                     datetime_format= "dd/mm/yy hh:mm")
 
         REGISTRO_DATAFRAME.to_excel(writer, index = False)
+
+    def __repr__(self):
+        l = (self.getNumeroS(), self.getNombre(), self.getDocumento(), self.getTotalS())
+        return "Numero: %s\t\t Nombre: %s, Documento: %s, Total: %s"%l
+
+class Factura(Documento):
+    def __init__(self, numero = None, usuario = None, servicios = [], observaciones = "", iva = 0.19, flete = 0, retefuente = 0):
+        super(Factura, self).__init__(numero, usuario, servicios, observaciones, iva, flete, retefuente)
+        self.setPDFDir()
+
+    def getPDFDir(self):
+        return self.pdf_dir
+
+    def setPDFDir(self, loc = None):
+        if loc == None:
+            self.pdf_dir =  os.path.join(constants.PDF_DIR, "Factura_" + self.getNumeroS())
+        else:
+            self.pdf_dir = loc
+
+    def save(self):
+        self.usuario.save()
+        self.toRegistro()
+        self.makePDF()
+
+    def makePDF(self):
+        FacturaPDFs(self)
+
+    def fromDocumento(documento):
+        d = documento
+        return Factura(d.getNumero(), d.getUsuario(), d.getServicios(),
+            d.getObservaciones(), d.getIVA(), d.getFlete(), d.getReteFuente())
+
+class Cotizacion(Documento):
+    def __init__(self, numero = None, usuario = None, servicios = [], observaciones = "", iva = 0.19, flete = 0, retefuente = 0):
+        super(Cotizacion, self).__init__(numero, usuario, servicios, observaciones, iva, flete, retefuente)
+        self.setPDFDir()
+
+    def getPDFDir(self):
+        return self.pdf_dir
+
+    def setPDFDir(self, loc = None):
+        if loc == None:
+            self.pdf_dir =  os.path.join(constants.PDF_DIR, "Cotizacion_" + self.getNumeroS() + ".pdf")
+        else:
+            self.pdf_dir = loc
+
+    def save(self):
+        self.usuario.save()
+        self.toRegistro()
+        self.makePDF()
+        with open(os.path.join(constants.OLD_DIR, self.getNumeroS() + ".pkl"), "wb") as file:
+            pickle.dump(self, file)
+
+    def makePDF(self):
+        CotizacionPDF(self)
+
+    def toDocumento(self):
+        return Documento(self.getNumero(), self.getUsuario(), self.getServicios(),
+            self.getObservaciones(), self.getIVA(), self.getFlete(), self.getReteFuente())
+
+    def fromDocumento(documento):
+        d = documento
+        return Cotizacion(d.getNumero(), d.getUsuario(), d.getServicios(),
+            d.getObservaciones(), d.getIVA(), d.getFlete(), d.getReteFuente())
 
 class Usuario(object):
     def __init__(self, nombre = None, documento = None, direccion = None, ciudad = None, telefono = None, correo = None):
@@ -318,4 +357,10 @@ class Servicio(object):
             self.descripcion = valor
 
     def makeTable(self):
-        return ["%d"%self.getCantidad(), self.getDescripcion(), "{:,}".format(self.getValorTotal())]
+        desc = wrap(self.getDescripcion(), width = 115)
+        table = []
+        table.append(["%d"%self.getCantidad(), desc[0], "{:,}".format(self.getValorTotal())])
+        desc.pop(0)
+        for text in desc:
+            table.append(["", text, ""])
+        return table

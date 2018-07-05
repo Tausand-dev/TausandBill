@@ -132,3 +132,110 @@ class FacturaPDF(object):
 
     def save(self):
         self.canvas.save()
+
+class CotizacionPDF(object):
+    def __init__(self, cotizacion):
+        self.width, self.height = letter
+        self.height *= 0.5
+
+        name = cotizacion.getPDFDir()
+
+        self.canvas = canvas.Canvas(name, pagesize = (self.width, self.height))
+
+        self.canvas.setLineWidth(.3)
+        self.canvas.setFont('Helvetica', 10)
+
+        logo = ImageReader(constants.BACKGROUND_COTIZACION)
+        self.canvas.drawImage(logo, 0, 0, height = self.height,
+                                width = self.width, mask = 'auto')
+
+        self.setFromCotizacion(cotizacion)
+        self.save()
+
+    def setCotizacionNumber(self, number):
+        self.canvas.setFont('Helvetica', 15)
+        self.canvas.drawCentredString(506, 336, number)
+        self.canvas.setFont('Helvetica', 8)
+
+    def setDate(self, dd, mm, yy):
+        h = 315
+        self.canvas.drawCentredString(487, h, dd)
+        self.canvas.drawCentredString(516, h, mm)
+        self.canvas.drawCentredString(552, h, yy)
+
+    def setSir(self, text):
+        self.canvas.drawString(96, 296, text)
+
+    def setDocumento(self, text):
+        self.canvas.drawString(463, 296, text)
+
+    def setDireccion(self, text):
+        self.canvas.drawString(97, 279, text)
+
+    def setCiudad(self, text):
+        self.canvas.drawString(277, 279, text)
+
+    def setTelefono(self, text):
+        self.canvas.drawString(376, 279, text)
+
+    def setCorreo(self, text):
+        self.canvas.setFont('Helvetica', 6)
+        self.canvas.drawString(461, 279, text)
+        self.canvas.setFont('Helvetica', 8)
+
+    def setItems(self, items):
+        y0 = 245
+        y1 = 135
+        d = (y1 - y0)/8
+
+        for (i, row) in enumerate(items):
+            self.canvas.drawRightString(88, y0 + i*d, row[0])
+            self.canvas.drawString(94, y0 + i*d, row[1])
+            self.canvas.drawRightString(574, y0 + i*d, row[2])
+
+    def setLast(self, sub, iva, flete, retefuente, total):
+        y0 = 124
+        y1 = 90
+        d = (y1 - y0)/3
+
+        self.canvas.drawRightString(574, y0, sub)
+        self.canvas.drawRightString(574, y0 + d, iva)
+        self.canvas.drawRightString(574, y0 + 2*d, flete)
+        self.canvas.drawRightString(574, y0 + 3*d, retefuente)
+
+        self.canvas.setFont('Helvetica', 10)
+        self.canvas.drawRightString(574, 76, total)
+
+    def setObservaciones(self, text):
+        style = ParagraphStyle(name = 'Justify', alignment = TA_JUSTIFY, fontSize = 8,
+                           fontName="Helvetica")
+        p = Paragraph(text, style)
+
+        voffset = 0
+
+        x1, y1 = 59, 120
+        x2, y2 = 439, 76
+
+        p.wrapOn(self.canvas, x2 - x1, y1 - y2)
+        p.drawOn(self.canvas, x1, y2)
+
+    def setFromCotizacion(self, cotizacion):
+        now = datetime.now()
+        self.setCotizacionNumber(cotizacion.getNumeroS())
+        self.setDate("%02d"%now.day, "%02d"%now.month, "%d"%now.year)
+        self.setSir(cotizacion.getNombre())
+        self.setDocumento(cotizacion.getDocumento())
+        self.setDireccion(cotizacion.getDireccion())
+        self.setCiudad(cotizacion.getCiudad())
+        self.setTelefono(cotizacion.getTelefono())
+        self.setCorreo(cotizacion.getCorreo())
+        self.setItems(cotizacion.makeTable())
+
+        self.setLast(cotizacion.getSubTotalS(), cotizacion.getIVAS(), cotizacion.getFleteS(),
+                        cotizacion.getReteFuenteS(), cotizacion.getTotalS())
+
+        obs = cotizacion.getObservaciones().replace('\n','<br/>')
+        self.setObservaciones(obs)
+
+    def save(self):
+        self.canvas.save()

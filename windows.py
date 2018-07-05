@@ -247,7 +247,7 @@ class AutoLineEdit(QtWidgets.QLineEdit):
         return QtWidgets.QWidget.event(self, event)
 
     def update(self):
-        if type(self.parent) is FacturaWindow:
+        if self.target != "Factura":
             dataframe = objects.CLIENTES_DATAFRAME
             order = 1
         else:
@@ -281,14 +281,14 @@ class CodigosDialog(QtWidgets.QDialog):
 
         self.resize(self.table.sizeHint())
 
-class FacturaWindow(QtWidgets.QMainWindow):
+class DocumentoWindow(QtWidgets.QMainWindow):
     FIELDS = ["Documento", "Nombre", "Dirección", "Ciudad", "Teléfono", "Correo"]
     WIDGETS = ["documento", "nombre", "direccion", "ciudad", "telefono", "correo"]
     AUTOCOMPLETE_FIELDS = ["Nombre", "Correo", "Documento", "Teléfono"]
     AUTOCOMPLETE_WIDGETS = ["nombre", "correo", "documento", "telefono"]
     def __init__(self, parent = None):
         super(QtWidgets.QMainWindow, self).__init__(parent)
-        self.setWindowTitle("Factura")
+        self.setWindowTitle("Generar documento")
 
         wid = QtWidgets.QWidget(self)
         self.setCentralWidget(wid)
@@ -300,15 +300,25 @@ class FacturaWindow(QtWidgets.QMainWindow):
         self.verticalLayout.setContentsMargins(11, 11, 11, 11)
         self.verticalLayout.setSpacing(6)
 
-        self.factura_frame = QtWidgets.QFrame()
+        self.documento_frame = QtWidgets.QFrame()
         self.form_frame = QtWidgets.QFrame()
         self.button_frame = QtWidgets.QFrame()
         self.total_frame = QtWidgets.QFrame()
         self.observaciones_frame = QtWidgets.QFrame()
 
-        self.factura_frame_layout = QtWidgets.QHBoxLayout(self.factura_frame)
-        self.numero_factura = QtWidgets.QPushButton()
-        self.factura_frame_layout.addWidget(self.numero_factura)
+        self.documento_frame_layout = QtWidgets.QFormLayout(self.documento_frame)
+        label1 = QtWidgets.QLabel("Seleccionar tipo:")
+        self.cotizacion_factura_widget = QtWidgets.QComboBox()
+        self.cotizacion_factura_widget.addItems(["Factura", "Cotización"])
+        self.cotizacion_factura_widget.setFixedWidth(100)
+        label2 = QtWidgets.QLabel("Número:")
+        self.numero_widget = AutoLineEdit("Factura", self)
+        self.numero_widget.setFixedWidth(40)
+
+        self.numero_widget.setAlignment(QtCore.Qt.AlignRight)
+
+        self.documento_frame_layout.addRow(label1, self.cotizacion_factura_widget)
+        self.documento_frame_layout.addRow(label2, self.numero_widget)
 
         self.form_frame_layout = QtWidgets.QGridLayout(self.form_frame)
         self.form_frame_layout.setContentsMargins(0, 0, 0, 0)
@@ -405,11 +415,12 @@ class FacturaWindow(QtWidgets.QMainWindow):
         self.total_widget.setAlignment(QtCore.Qt.AlignRight)
 
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum)
-        self.factura_frame.setSizePolicy(sizePolicy)
+        # self.
+        self.documento_frame.setSizePolicy(sizePolicy)
         self.total_frame.setSizePolicy(sizePolicy)
         self.button_frame.setSizePolicy(sizePolicy)
 
-        self.factura_frame_layout.setAlignment(QtCore.Qt.AlignRight)
+        self.documento_frame_layout.setAlignment(QtCore.Qt.AlignRight)
         self.total_frame_layout.setAlignment(QtCore.Qt.AlignRight)
         self.button_frame_layout.setAlignment(QtCore.Qt.AlignRight)
         self.verticalLayout.setAlignment(QtCore.Qt.AlignRight)
@@ -435,7 +446,7 @@ class FacturaWindow(QtWidgets.QMainWindow):
         self.observaciones_layout = QtWidgets.QFormLayout(self.observaciones_frame)
         self.observaciones_layout.addRow(observaciones_label, self.observaciones_widget)
 
-        self.verticalLayout.addWidget(self.factura_frame)
+        self.verticalLayout.addWidget(self.documento_frame)
         self.verticalLayout.addWidget(self.autocompletar_widget)
         self.verticalLayout.addWidget(self.form_frame)
         self.verticalLayout.addWidget(self.table)
@@ -445,12 +456,14 @@ class FacturaWindow(QtWidgets.QMainWindow):
 
         self.setAutoCompletar()
 
-        self.factura = objects.Factura()
+        self.documento = objects.Documento()
 
-        self.setLastFactura()
+        self.setLast()
+        self.numero_widget.setEnabled(False)
 
-        self.resize(600, 550)
+        self.resize(600, 650)
 
+        self.cotizacion_factura_widget.currentIndexChanged.connect(self.changeFacturaCotizacion)
         self.iva_edit.textChanged.connect(self.ivaHandler)
         self.flete_edit.textChanged.connect(self.fleteHandler)
         self.retefuente_edit.textChanged.connect(self.reteFuenteHandler)
@@ -476,6 +489,7 @@ class FacturaWindow(QtWidgets.QMainWindow):
     def updateAutoCompletar(self):
         for item in self.AUTOCOMPLETE_WIDGETS:
             exec("self.%s_widget.update()"%item)
+        self.numero_widget.update()
 
     def autoCompletar(self, text):
         if text != "":
@@ -502,8 +516,8 @@ class FacturaWindow(QtWidgets.QMainWindow):
             widget.blockSignals(True)
             widget.setText("")
             widget.blockSignals(False)
-        self.setLastFactura()
-        self.factura.setServicios([])
+        self.setLast()
+        self.documento.setServicios([])
         self.subtotal_widget.setText("")
         self.iva_widget.setText("")
         self.flete_widget.setText("")
@@ -520,21 +534,21 @@ class FacturaWindow(QtWidgets.QMainWindow):
         t = "0" + self.iva_edit.text()
         if t != "":
             f = float(t)
-            self.factura.setIvaCoeff(f)
+            self.documento.setIvaCoeff(f)
             self.setTotal()
 
     def fleteHandler(self):
         t = self.flete_edit.text()
         if t != "":
             f = int(t)
-            self.factura.setFlete(f)
+            self.documento.setFlete(f)
             self.setTotal()
 
     def reteFuenteHandler(self):
         t = self.retefuente_edit.text()
         if t != "":
             f = int(t)
-            self.factura.setReteFuente(f)
+            self.documento.setReteFuente(f)
             self.setTotal()
 
     def closePDF(self, p1, old):
@@ -578,23 +592,28 @@ class FacturaWindow(QtWidgets.QMainWindow):
             if len(self.getServicios()) == 0:
                 raise(Exception("No existen servicios cotizados."))
 
-            usuario = objects.Usuario(**dic)
-            self.factura.setUsuario(usuario)
-            self.factura.setObservaciones(self.observaciones_widget.toPlainText())
-            self.factura.makePDF()
-
             sys_path = os.path.dirname(sys.executable)
-            path_1 = self.factura.getPDFDir() + constants.PDF_DIGITAL
-            path_2 = self.factura.getPDFDir() + constants.PDF_PRINT
-
-            path = os.path.join(sys_path, path_1)
-            if os.path.exists(path):
-                path_1 = path
-                path_2 = os.path.join(sys_path, path_2)
-            else:
+            if not os.path.exists(os.path.join(sys_path, constants.PDF_DIR)):
                 sys_path = os.getcwd()
+
+            usuario = objects.Usuario(**dic)
+
+            self.documento.setUsuario(usuario)
+            self.documento.setObservaciones(self.observaciones_widget.toPlainText())
+
+            if self.cf_widget.isChecked():
+                documento = objects.Factura.fromDocumento(self.documento)
+                path_1 = documento.getPDFDir() + constants.PDF_DIGITAL
+                path_2 = documento.getPDFDir() + constants.PDF_PRINT
                 path_1 = os.path.join(sys_path, path_1)
                 path_2 = os.path.join(sys_path, path_2)
+
+            else:
+                documento = objects.Cotizacion.fromDocumento(self.documento)
+                path_1 = os.path.join(sys_path, documento.getPDFDir())
+                path_2 = ""
+
+            documento.makePDF()
 
             old = [proc.pid for proc in psutil.process_iter()]
 
@@ -604,19 +623,19 @@ class FacturaWindow(QtWidgets.QMainWindow):
                 self.closePDF(p1, old)
                 for i in range(10):
                     try:
-                        self.factura.save()
+                        documento.save()
                         break
                     except PermissionError:
                         sleep(0.1)
-
                 self.updateAutoCompletar()
                 self.limpiar()
-                self.setLastFactura()
+                self.setLast()
             else:
                 self.closePDF(p1, old)
-                self.factura.setUsuario(None)
-                self.factura.setObservaciones("")
-                os.remove(path_2)
+                self.documento.setUsuario(None)
+                self.documento.setObservaciones("")
+                if path_2 != "":
+                    os.remove(path_2)
                 for i in range(10):
                     try:
                         os.remove(path_1)
@@ -627,17 +646,16 @@ class FacturaWindow(QtWidgets.QMainWindow):
         except Exception as e:
             self.errorWindow(e)
 
-        self.factura.setUsuario(None)
-        self.factura.setObservaciones("")
+        self.documento.setUsuario(None)
+        self.documento.setObservaciones("")
 
-    def setLastFactura(self):
+    def setLast(self):
         try:
             cot = int(objects.REGISTRO_DATAFRAME["Factura"].values[0]) + 1
         except IndexError:
             cot = 1
-
-        self.factura.setNumero(cot)
-        self.numero_factura.setText(self.factura.getNumeroS())
+        self.documento.setNumero(cot)
+        self.numero_widget.setText(self.documento.getNumeroS())
 
     def centerOnScreen(self):
         resolution = QtWidgets.QDesktopWidget().screenGeometry()
@@ -645,26 +663,30 @@ class FacturaWindow(QtWidgets.QMainWindow):
                   (resolution.height() / 2) - (self.frameSize().height() / 2))
 
     def addServicio(self, servicio):
-        self.factura.addServicio(servicio)
+        self.documento.addServicio(servicio)
 
     def getCodigos(self):
-        return self.factura.getCodigos()
+        return self.documento.getCodigos()
 
     def getServicio(self, cod):
-        return self.factura.getServicio(cod)
+        return self.documento.getServicio(cod)
 
     def getServicios(self):
-        return self.factura.getServicios()
+        return self.documento.getServicios()
+
+    def changeFacturaCotizacion(self, state):
+        self.numero_widget.setEnabled(state)
+        self.setLast()
 
     def removeServicio(self, index):
-        self.factura.removeServicio(index)
+        self.documento.removeServicio(index)
 
     def setTotal(self):
-        self.subtotal_widget.setText(self.factura.getSubTotalS())
-        self.iva_widget.setText(self.factura.getIVAS())
-        self.flete_widget.setText(self.factura.getFleteS())
-        self.retefuente_widget.setText(self.factura.getReteFuenteS())
-        self.total_widget.setText(self.factura.getTotalS())
+        self.subtotal_widget.setText(self.documento.getSubTotalS())
+        self.iva_widget.setText(self.documento.getIVAS())
+        self.flete_widget.setText(self.documento.getFleteS())
+        self.retefuente_widget.setText(self.documento.getReteFuenteS())
+        self.total_widget.setText(self.documento.getTotalS())
 
     def valuesFromStart(self):
         try:
