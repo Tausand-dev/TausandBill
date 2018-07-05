@@ -11,7 +11,7 @@ from reportlab.lib.styles import ParagraphStyle
 class FacturaPDFs(object):
     def __init__(self, factura):
         dir = factura.getPDFDir()
-        
+
         digital = dir + constants.PDF_DIGITAL
         print_ = dir + constants.PDF_PRINT
 
@@ -81,7 +81,7 @@ class FacturaPDF(object):
         d = (y1 - y0)/8
 
         for (i, row) in enumerate(items):
-            self.canvas.drawString(74, y0 + i*d, row[0])
+            self.canvas.drawRightString(88, y0 + i*d, row[0])
             self.canvas.drawString(94, y0 + i*d, row[1])
             self.canvas.drawRightString(574, y0 + i*d, row[2])
 

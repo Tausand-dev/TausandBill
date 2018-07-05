@@ -6,7 +6,7 @@ a = Analysis(['main.py'],
              pathex=[],
              binaries=[],
              datas=[],
-             hiddenimports=[],
+             hiddenimports=["PyQt5.sip"],
              hookspath=[],
              runtime_hooks=[],
              excludes=[],
@@ -24,7 +24,7 @@ exe = EXE(pyz,
           debug=False,
           strip=False,
           upx=True,
-          console=False, icon='Registers/icon.ico')
+          console=False, icon='Registers/icon.ico', version='fileversion.txt')
 
 coll = COLLECT(exe,
                a.binaries,
