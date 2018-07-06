@@ -477,6 +477,8 @@ class DocumentoWindow(QtWidgets.QMainWindow):
 
         self.valuesFromStart()
 
+        self.cotizacion_factura_widget.setEnabled(False) # TEMPORAL
+
     def setAutoCompletar(self):
         for item in self.AUTOCOMPLETE_WIDGETS:
             widget = eval("self.%s_widget"%item)
@@ -563,7 +565,7 @@ class DocumentoWindow(QtWidgets.QMainWindow):
             for proc in new:
                 p = psutil.Process(proc)
                 if p.parent().name() == "cmd.exe":
-                    if (p.parent().parent().name() == "MicroBill.exe") or (p.parent().parent().name() == "python.exe"):
+                    if (p.parent().parent().name() == "TausandBill.exe") or (p.parent().parent().name() == "python.exe"):
                         p.terminate()
             p1.kill()
         except:
@@ -601,7 +603,7 @@ class DocumentoWindow(QtWidgets.QMainWindow):
             self.documento.setUsuario(usuario)
             self.documento.setObservaciones(self.observaciones_widget.toPlainText())
 
-            if self.cf_widget.isChecked():
+            if self.isFactura():
                 documento = objects.Factura.fromDocumento(self.documento)
                 path_1 = documento.getPDFDir() + constants.PDF_DIGITAL
                 path_2 = documento.getPDFDir() + constants.PDF_PRINT
@@ -656,6 +658,11 @@ class DocumentoWindow(QtWidgets.QMainWindow):
             cot = 1
         self.documento.setNumero(cot)
         self.numero_widget.setText(self.documento.getNumeroS())
+
+    def isFactura(self):
+        if self.cotizacion_factura_widget.currentText() == "Factura":
+            return True
+        return False
 
     def centerOnScreen(self):
         resolution = QtWidgets.QDesktopWidget().screenGeometry()

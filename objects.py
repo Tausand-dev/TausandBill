@@ -17,8 +17,8 @@ makeDir(constants.PDF_DIR)
 makeDir(constants.OLD_DIR)
 
 def readDataFrames():
-    c = pd.read_excel(constants.CLIENTES_FILE).fillna("").astype(str)
-    r = pd.read_excel(constants.REGISTRO_FILE).fillna("").astype(str)
+    c = pd.read_excel(constants.CLIENTES_FILE, dtype = str)#.fillna("").astype(str)
+    r = pd.read_excel(constants.REGISTRO_FILE, dtype = str)#.fillna("").astype(str)
     return c, r
 
 CLIENTES_DATAFRAME, REGISTRO_DATAFRAME = readDataFrames()
@@ -44,6 +44,9 @@ class Documento(object):
 
     def getSubTotal(self):
         return sum([servicio.getValorTotal() for servicio in self.servicios])
+
+    def getIVACoeff(self):
+        return self.iva_coeff
 
     def getIVA(self):
         return int(self.getSubTotal() * self.iva_coeff)
@@ -148,16 +151,10 @@ class Documento(object):
             table += servicio.makeTable()
         return table
 
-    def toRegistro(self):
+    def toRegistro(self, fields):
         global REGISTRO_DATAFRAME
 
         last = REGISTRO_DATAFRAME.shape[0]
-
-        usuario = self.getUsuario()
-        fields = [self.getNumeroS(), datetime.now().replace(second = 0, microsecond = 0),
-                    usuario.getNombre(), usuario.getDocumento(), usuario.getDireccion(),
-                    usuario.getCiudad(), usuario.getTelefono(), usuario.getCorreo(),
-                    self.getTotalS(), self.getObservaciones()]
 
         REGISTRO_DATAFRAME.loc[last] = fields
 
@@ -189,8 +186,17 @@ class Factura(Documento):
             self.pdf_dir = loc
 
     def save(self):
+        usuario = self.getUsuario()
+        obs = self.getObservaciones()
+        if obs == "":
+            obs = "-"
+        fields = [self.getNumeroS(), datetime.now().replace(second = 0, microsecond = 0),
+                    usuario.getNombre(), usuario.getDocumento(), usuario.getDireccion(),
+                    usuario.getCiudad(), usuario.getTelefono(), usuario.getCorreo(),
+                    self.getTotalS(), obs]
+
         self.usuario.save()
-        self.toRegistro()
+        self.toRegistro(fields)
         self.makePDF()
 
     def makePDF(self):
@@ -199,7 +205,7 @@ class Factura(Documento):
     def fromDocumento(documento):
         d = documento
         return Factura(d.getNumero(), d.getUsuario(), d.getServicios(),
-            d.getObservaciones(), d.getIVA(), d.getFlete(), d.getReteFuente())
+            d.getObservaciones(), d.getIVACoeff(), d.getFlete(), d.getReteFuente())
 
 class Cotizacion(Documento):
     def __init__(self, numero = None, usuario = None, servicios = [], observaciones = "", iva = 0.19, flete = 0, retefuente = 0):
@@ -216,8 +222,17 @@ class Cotizacion(Documento):
             self.pdf_dir = loc
 
     def save(self):
+        usuario = self.getUsuario()
+        obs = self.getObservaciones()
+        if obs == "":
+            obs = "-"
+        fields = ["C-" + self.getNumeroS(), datetime.now().replace(second = 0, microsecond = 0),
+                    usuario.getNombre(), usuario.getDocumento(), usuario.getDireccion(),
+                    usuario.getCiudad(), usuario.getTelefono(), usuario.getCorreo(),
+                    self.getTotalS(), obs]
+
         self.usuario.save()
-        self.toRegistro()
+        self.toRegistro(fields)
         self.makePDF()
         with open(os.path.join(constants.OLD_DIR, self.getNumeroS() + ".pkl"), "wb") as file:
             pickle.dump(self, file)
@@ -232,7 +247,7 @@ class Cotizacion(Documento):
     def fromDocumento(documento):
         d = documento
         return Cotizacion(d.getNumero(), d.getUsuario(), d.getServicios(),
-            d.getObservaciones(), d.getIVA(), d.getFlete(), d.getReteFuente())
+            d.getObservaciones(), d.getIVACoeff(), d.getFlete(), d.getReteFuente())
 
 class Usuario(object):
     def __init__(self, nombre = None, documento = None, direccion = None, ciudad = None, telefono = None, correo = None):

@@ -2,6 +2,7 @@ import os
 import constants
 from datetime import datetime
 from reportlab.pdfgen import canvas
+from reportlab.lib.units import mm
 from reportlab.platypus import Paragraph
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.enums import TA_JUSTIFY
@@ -37,7 +38,7 @@ class FacturaPDF(object):
         self.canvas = canvas.Canvas(name, pagesize = (self.width, self.height))
 
         self.canvas.setLineWidth(.3)
-        self.canvas.setFont('Helvetica', 10)
+        self.canvas.setFont('Helvetica', 8)
 
         if self.background:
             logo = ImageReader(constants.BACKGROUND_FACTURA)
@@ -46,49 +47,87 @@ class FacturaPDF(object):
 
     def setFacturaNumber(self, number):
         self.canvas.setFont('Helvetica', 15)
-        self.canvas.drawCentredString(506, 336, number)
+        self.canvas.drawCentredString(506, 336 + 1*mm, number)
         self.canvas.setFont('Helvetica', 8)
 
-    def setDate(self, dd, mm, yy):
+    def setDate(self, dd, mm_, yy):
         h = 315
+        if not self.background:
+            h += 2*mm
         self.canvas.drawCentredString(487, h, dd)
-        self.canvas.drawCentredString(516, h, mm)
+        self.canvas.drawCentredString(516, h, mm_)
         self.canvas.drawCentredString(552, h, yy)
 
     def setSir(self, text):
-        self.canvas.drawString(96, 296, text)
+        h = 296
+        w = 96
+        if not self.background:
+            h += 3*mm
+            w -= 3*mm
+        self.canvas.drawString(w, h, text)
 
     def setDocumento(self, text):
-        self.canvas.drawString(463, 296, text)
+        h = 296
+        w = 463
+        if not self.background:
+            h += 3*mm
+        self.canvas.drawString(w, h, text)
 
     def setDireccion(self, text):
-        self.canvas.drawString(97, 279, text)
+        h = 279
+        w = 97
+        if not self.background:
+            h += 3*mm
+            w -= 3*mm
+        self.canvas.drawString(w, h, text)
 
     def setCiudad(self, text):
-        self.canvas.drawString(277, 279, text)
+        h = 279
+        w = 277
+        if not self.background:
+            h += 3*mm
+        self.canvas.drawString(w, h, text)
 
     def setTelefono(self, text):
-        self.canvas.drawString(376, 279, text)
+        h = 279
+        w = 376
+        if not self.background:
+            h += 3*mm
+        self.canvas.drawString(w, h, text)
 
     def setCorreo(self, text):
+        h = 279
+        w = 461
+        if not self.background:
+            h += 3*mm
         self.canvas.setFont('Helvetica', 6)
-        self.canvas.drawString(461, 279, text)
+        self.canvas.drawString(w, h, text)
         self.canvas.setFont('Helvetica', 8)
 
     def setItems(self, items):
         y0 = 245
         y1 = 135
         d = (y1 - y0)/8
+        d1 = 0
+        d2 = 0
+        d3 = 0
+
+        if not self.background:
+            d1 = 2*mm
+            d2 = 2*mm
+            d3 = 1*mm
 
         for (i, row) in enumerate(items):
-            self.canvas.drawRightString(88, y0 + i*d, row[0])
-            self.canvas.drawString(94, y0 + i*d, row[1])
-            self.canvas.drawRightString(574, y0 + i*d, row[2])
+            self.canvas.drawRightString(88, y0 + i*d + d1, row[0])
+            self.canvas.drawString(94, y0 + i*d + d2, row[1])
+            self.canvas.drawRightString(574, y0 + i*d + d3, row[2])
 
     def setLast(self, sub, iva, flete, retefuente, total):
         y0 = 124
         y1 = 90
         d = (y1 - y0)/3
+        if not self.background:
+            y0 += 1*mm
 
         self.canvas.drawRightString(574, y0, sub)
         self.canvas.drawRightString(574, y0 + d, iva)
@@ -96,7 +135,11 @@ class FacturaPDF(object):
         self.canvas.drawRightString(574, y0 + 3*d, retefuente)
 
         self.canvas.setFont('Helvetica', 10)
-        self.canvas.drawRightString(574, 76, total)
+        if self.background:
+            self.canvas.drawRightString(574, 76, total)
+        else:
+            self.canvas.drawRightString(574, 76 + 1*mm, total)
+        self.canvas.setFont('Helvetica', 8)
 
     def setObservaciones(self, text):
         style = ParagraphStyle(name = 'Justify', alignment = TA_JUSTIFY, fontSize = 8,
@@ -107,6 +150,10 @@ class FacturaPDF(object):
 
         x1, y1 = 59, 120
         x2, y2 = 439, 76
+
+        if not self.background:
+            y1 += 2*mm
+            y2 += 2*mm
 
         p.wrapOn(self.canvas, x2 - x1, y1 - y2)
         p.drawOn(self.canvas, x1, y2)
