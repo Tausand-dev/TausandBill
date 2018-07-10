@@ -149,14 +149,19 @@ class FacturaPDF(object):
         self.canvas.setFont(self.font_name, 8)
 
     def setObservaciones(self, text):
-        style = ParagraphStyle(name = 'Justify', alignment = TA_JUSTIFY, fontSize = 8,
-                           fontName = self.font_name)
-
         w = TextWrapper(width = 75, break_long_words = False, replace_whitespace = False)
-        text = '\n'.join(w.wrap(text))
+        splitted = text.split("\n")
+        wrapped = []
+        for txt in splitted:
+            wrapped += w.wrap(txt)
+        text = '\n'.join(wrapped)
         text = text.replace('\n', '<br/>')
         n = text.count('<br/>')
+        if n > 3:
+            raise(Exception("Se ha excedido la cantidad máxima de líneas para el campo observación."))
 
+        style = ParagraphStyle(name = 'Justify', alignment = TA_JUSTIFY, fontSize = 8,
+                           fontName = self.font_name)
         p = Paragraph(text, style)
 
         voffset = 0
@@ -267,18 +272,29 @@ class CotizacionPDF(object):
         self.canvas.setFont(self.font_name, 10)
         self.canvas.drawRightString(574, 76, total)
 
-    def setObservaciones(self, text):
-        style = ParagraphStyle(name = 'Justify', alignment = TA_JUSTIFY, fontSize = 8,
-                           fontName=self.font_name)
-        p = Paragraph(text, style)
+def setObservaciones(self, text):
+    w = TextWrapper(width = 75, break_long_words = False, replace_whitespace = False)
+    splitted = text.split("\n")
+    wrapped = []
+    for txt in splitted:
+        wrapped += w.wrap(txt)
+    text = '\n'.join(wrapped)
+    text = text.replace('\n', '<br/>')
+    n = text.count('<br/>')
+    if n > 3:
+        raise(Exception("Se ha excedido la cantidad máxima de líneas para el campo observación."))
 
-        voffset = 0
+    style = ParagraphStyle(name = 'Justify', alignment = TA_JUSTIFY, fontSize = 8,
+                       fontName = self.font_name)
+    p = Paragraph(text, style)
 
-        x1, y1 = 59, 120
-        x2, y2 = 439, 76
+    voffset = 0
 
-        p.wrapOn(self.canvas, x2 - x1, y1 - y2)
-        p.drawOn(self.canvas, x1, y2)
+    x1, y1 = 59, 108
+    x2, y2 = 445, 76
+
+    p.wrapOn(self.canvas, x2 - x1, y1 - y2)
+    p.drawOn(self.canvas, x1, y1 - n*12)
 
     def setFromCotizacion(self, cotizacion):
         now = datetime.now()

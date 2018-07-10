@@ -190,6 +190,8 @@ class Factura(Documento):
         obs = self.getObservaciones()
         if obs == "":
             obs = "-"
+        else:
+            obs = obs.replace("\n", " ")
         fields = [self.getNumeroS(), datetime.now().replace(second = 0, microsecond = 0),
                     usuario.getNombre(), usuario.getDocumento(), usuario.getDireccion(),
                     usuario.getCiudad(), usuario.getTelefono(), usuario.getCorreo(),
@@ -226,6 +228,8 @@ class Cotizacion(Documento):
         obs = self.getObservaciones()
         if obs == "":
             obs = "-"
+        else:
+            obs = obs.replace("\n", " ")
         fields = ["C-" + self.getNumeroS(), datetime.now().replace(second = 0, microsecond = 0),
                     usuario.getNombre(), usuario.getDocumento(), usuario.getDireccion(),
                     usuario.getCiudad(), usuario.getTelefono(), usuario.getCorreo(),
