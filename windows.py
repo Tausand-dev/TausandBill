@@ -707,8 +707,7 @@ class DocumentoWindow(QtWidgets.QMainWindow):
 
     def saveStart(self):
         dict_ = {"self.iva_edit.setText": self.iva_edit.text(),
-                "self.flete_edit.setText": self.flete_edit.text(),
-                "self.retefuente_edit.setText": self.retefuente_edit.text()}
+                }
 
         with open("init.pkl", "wb") as file:
             pickle.dump(dict_, file)

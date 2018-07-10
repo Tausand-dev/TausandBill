@@ -58,7 +58,7 @@ class Documento(object):
         return self.retefuente
 
     def getTotal(self):
-        return self.getSubTotal() + self.getIVA() + self.getFlete() + self.getReteFuente()
+        return self.getSubTotal() + self.getIVA() + self.getFlete() - self.getReteFuente()
 
     def getNumeroS(self):
         return str(self.getNumero()).zfill(4)
@@ -372,7 +372,7 @@ class Servicio(object):
             self.descripcion = valor
 
     def makeTable(self):
-        desc = wrap(self.getDescripcion(), width = 115)
+        desc = wrap(self.getDescripcion(), width = 80)
         table = []
         table.append(["%d"%self.getCantidad(), desc[0], "{:,}".format(self.getValorTotal())])
         desc.pop(0)
