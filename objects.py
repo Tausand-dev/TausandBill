@@ -369,6 +369,7 @@ class Servicio(object):
             self.valor_total = int(self.getValorUnitario() * self.getCantidad())
         else:
             self.valor_total = valor
+            self.valor_unitario = self.valor_total // self.getCantidad()
 
     def setDescripcion(self, valor = None):
         if valor == None:

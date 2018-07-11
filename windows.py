@@ -205,7 +205,9 @@ class Table(QtWidgets.QTableWidget):
                 if cod != "":
                     servicio = self.parent.getServicio(cod)
                     servicio.setValorTotal(n)
+                    v = servicio.getValorUnitario()
                     self.item(row, self.C_TOTAL).setText("{:,}".format(n))
+                    self.item(row, self.C_UNITARIO).setText("{:,}".format(v))
 
             self.parent.setTotal()
         except Exception as e:
