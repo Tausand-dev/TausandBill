@@ -61,7 +61,7 @@ class Documento(object):
         return self.getSubTotal() + self.getIVA() + self.getFlete() - self.getReteFuente()
 
     def getNumeroS(self):
-        return str(self.getNumero()).zfill(4)
+        return str(self.getNumero()).zfill(constants.ZERO_PADDING)
 
     def getSubTotalS(self):
         return self.formatComma(self.getSubTotal())
@@ -73,7 +73,10 @@ class Documento(object):
         return self.formatComma(self.getFlete())
 
     def getReteFuenteS(self):
-        return self.formatComma(self.getReteFuente())
+        txt = self.formatComma(self.getReteFuente())
+        if self.getReteFuente() == 0:
+            return txt
+        return "-" + txt
 
     def getTotalS(self):
         return self.formatComma(self.getTotal())

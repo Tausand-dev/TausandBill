@@ -55,7 +55,7 @@ class FacturaPDF(object):
     def setDate(self, dd, mm_, yy):
         h = 315
         if not self.background:
-            h += 2*mm
+            h += 2.5*mm
         self.canvas.drawCentredString(487, h, dd)
         self.canvas.drawCentredString(516, h, mm_)
         self.canvas.drawCentredString(552, h, yy)

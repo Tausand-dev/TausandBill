@@ -1,7 +1,7 @@
 import os
 import pandas as pd
 
-IVA_COEFF = 0.19
+ZERO_PADDING = 4
 
 OLD_DIR = "Cotizaciones"
 PDF_DIR = "PDF"
